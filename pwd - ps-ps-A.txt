@@ -1,0 +1,206 @@
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <readline/readline.h>
+#include <unistd.h>
+#define _POSIX_SOURCE
+#include <stdio.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <readline/history.h>
+#include <string.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <stdio.h>
+
+
+
+/* pwd command for printing the current working directory*/
+void pwd()
+{
+	char CWD[1024];
+	getcwd(CWD, sizeof(CWD));
+	printf("Current Directory: %s\n", CWD);
+}
+/**************ps*******************
+ print some information about the current running processes (there pid,the terminal that runs them, the Time for each process, the name of it)*/
+
+void ps_command()
+
+{
+
+printf("PID      TTY      TIME   CMD");
+
+        //variables
+	DIR *d;
+	int i, fd_s, fd;
+	unsigned long utime, stime;
+	char f, *tty;
+	FILE *file;
+
+	char cmd[256];
+     /*function opens a directory stream corresponding to the directory name, 
+       and returns a pointer to the directory stream. 
+       The stream is positioned at the first entry in the directory.*/
+
+    d = opendir("/proc");
+    
+     /*This is a structure type used to return information about directory entries*/
+     struct dirent *ent;
+            
+               //loop for reading all the directories
+		while ((ent = readdir(d)) != NULL)
+		{
+
+		   char path[50];
+
+	    	sprintf(path, "/proc/%s/fd/0", ent->d_name);
+           	fd = open(path, O_RDONLY);
+				if(fd == NULL)
+				
+				continue;
+				
+				tty = ttyname(fd);
+				
+				sprintf(path, "/proc/%s/stat", ent->d_name);
+
+				file = fopen(path, "r");
+
+				if(file == NULL)
+
+				continue;
+			
+				fscanf(file, "%d%s%c%c%c", &i, cmd, &f, &f, &f);
+                                
+                                     // for calculating the time for each process
+				     for (i = 0; i < 11; i++)
+					
+					fscanf(file, "%lu", &utime);
+
+					fscanf(file, "%lu", &stime);
+
+					int time = (int)((double)(utime + stime) / sysconf(_SC_CLK_TCK));
+					
+					//printing the information about the process
+                                         printf("%s    %s    %lu    %s\n", ent->d_name, tty, utime, cmd);
+
+				
+                                close(file);
+				
+				close(fd);
+
+	         	}
+             }
+ 
+/********************ps -A****************
+  print some information about all the processes (there pid,the terminal that runs    them, the Time for each process, the name of it)*/
+void ps()
+
+{
+
+printf("PID      TTY      TIME   CMD");
+
+        //variables
+	DIR *d;
+	int i, fd_s, fd;
+	unsigned long utime, stime;
+	char f, *tty;
+	FILE *file;
+	
+	int t = 1;
+
+	char cmd[256];
+
+    d = opendir("/proc");
+
+     struct dirent *ent;
+                //loop for reading all the directories
+		while ((ent = readdir(d)) != NULL)
+		{
+
+             int g = atoi(ent->d_name);
+             if(kill(g,0)!=0)
+             continue;
+
+		   char path[50];
+
+	    	sprintf(path, "/proc/%s/fd/0", ent->d_name);
+           	 
+                /*remove the if statment to show all the processes in system*/
+                fd = open(path, O_RDONLY);
+				
+                               if(fd == NULL)
+				
+				continue;
+				
+				tty = ttyname(fd);
+				
+				sprintf(path, "/proc/%s/stat", ent->d_name);
+
+				file = fopen(path, "r");
+
+				if(file == NULL)
+				continue;
+			
+				fscanf(file, "%d%s%c%c%c", &i, cmd, &f, &f, &f);
+
+			             // for calculating the time for each process
+                                     for (i = 0; i < 11; i++)
+					
+					fscanf(file, "%lu", &utime);
+
+					fscanf(file, "%lu", &stime);
+
+					int time = (int)((double)(utime + stime) / sysconf(_SC_CLK_TCK));
+					
+                                        //printing the information about the process
+					printf("%s    %s    %lu    %s\n", ent->d_name, tty, utime, cmd);
+
+				close(file);
+				
+				close(fd);
+
+	         	}
+             }
+
+
+
+
+int main()
+{
+while(1){
+    
+    char in[15];
+    printf("Please Enter the input>>");
+    gets(in);
+
+    char str[40];
+    char str1[40];
+    
+    sscanf(in,"%s %s",str,str1);
+    
+    /* if the user asked  for print current working directory command*/
+    if(strcmp(str,"pwd") == 0){
+    pwd();
+    continue;  
+    }
+    
+    /* if the user asked for information about the running processes */
+    else if(strcmp(str,"ps") == 0 && strlen(in)==2){
+    ps();
+     }
+   /*if the user asked for information about all the processes  */
+   else if(strcmp(str,"ps") == 0){
+     if(strcmp(str1,"-A") == 0){
+     ps_command();
+     }
+    }
+}
+return 0;
+
+}
